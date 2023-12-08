@@ -1,0 +1,45 @@
+name: Lint Format and Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+    - name: Install dependencies with Poetry
+      run: |
+        pipx install poetry
+        pipx install ruff
+        poetry install
+    - name: generate Prisma Types
+      run: |
+        poetry run prisma generate
+    - name: Type check with pyright
+      continue-on-error: true
+      run: |
+        poetry run pyright
+    - name: Lint with ruff
+      continue-on-error: true
+      run: |
+        poetry run ruff check --fix access_stack_spike/
+    - name: Format with ruff
+      continue-on-error: true
+      run: |
+        poetry run ruff format access_stack_spike/
+    - name: Test with pytest
+      run: |
+        poetry run pytest

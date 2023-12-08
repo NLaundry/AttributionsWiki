@@ -1,0 +1,70 @@
+[tool.poetry]
+name = "attributionswiki"
+version = "0.1.0"
+description = ""
+authors = ["Nathan Laundry <nathan.laundry@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+uvicorn = "^0.24.0.post1"
+pyright = "^1.1.336"
+fastapi = "^0.104.1"
+pydantic = "^2.5.1"
+pytest = "^7.4.3"
+ruff = "^0.1.6"
+prisma = "^0.11.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = 'strict'
+
+[tool.ruff.lint]
+# Select following types of issues to be highlighted by the linter
+select = [
+ "E", # pycodestyle issues
+ "F", # Pyflakes issues
+ "UP", # pyupgrade issues
+ "D", # pydocstyle issues
+ "B", # flake8-bugbear issues
+ "SIM", # flake8-simplify issues
+ "I", # isort issues
+ "N", # pep8-naming issues
+ "ASYNC", # flake8-async issues
+ "ICN", # flake8-import-conventions issues
+ "T20", # flake8-print issues
+ "PT", # flake8-pytest-style issues
+ "TRY", # tryceratops issues
+ "PERF", # Perflint issues
+ "RUF", # Ruff-specific rules
+]
+
+# Ignore the following issues
+ignore = [
+ "F401", # Pyflakes: imported but unused issues
+ "E501", # pycodestyle: line too long issues
+ "W191", # Indentation contains tabs
+ "E111", # pycodestyle: indentation is not a multiple of four
+ "E114", # pycodestyle: indentation is not a multiple of four (comment)
+ "E117", # pycodestyle: over-indented
+ "D206", # pydocstyle: Docstring should be indented with spaces, not tabs
+ "D300", # pydocstyle: Use """triple double quotes""" (found '''-quotes)
+ "Q000", # flake8-quotes: remove bad quotes from docstrings
+ "Q001", # flake8-quotes: remove bad quotes from multiline string literals
+ "Q002", # flake8-quotes: remove bad quotes from single-line string literals
+ "Q003", # flake8-quotes: change outer quotes to avoid escaping inner quotes
+ "COM812", # flake8-commas: missing trailing comma
+ "COM819", # flake8-commas: trailing comma prohibited
+ "ISC001", # flake8-implicit-str-concat: implicitly concatenated string literals
+ "ISC002", # flake8-implicit-str-concat: implicitly concatenated string literals next to parentheses
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

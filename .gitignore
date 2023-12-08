@@ -1,0 +1,26 @@
+# Gitignore for Python Poetry Project
+
+# Python virtual environment
+.venv/
+
+# Poetry dependencies
+poetry.lock
+
+
+# FastAPI
+__pycache__/
+app/__pycache__/
+app/main/__pycache__/
+app/tests/__pycache__/
+app/__init__.pyc
+app/main/__init__.pyc
+app/tests/__init__.pyc
+
+# Pytest
+.pytest_cache/
+pytest.ini
+
+# Pyenv
+.python-version
+
+.env

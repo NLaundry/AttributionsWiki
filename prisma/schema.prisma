@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-py"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id          String        @id @default(uuid())
+    email       String        @unique
+    name        String?
+    role        Role          @default(USER)
+    Factor      Factor[]
+    Attribution Attribution[]
+    Belief      Belief[]
+}
+
+model Factor {
+    id          Int      @id @default(autoincrement())
+    created_at  DateTime @default(now())
+    updated_at  DateTime @updatedAt
+    description String
+    author      User     @relation(fields: [authorId], references: [id])
+    authorId    String
+}
+
+model Attribution {
+    id              Int             @id @default(autoincrement())
+    created_at      DateTime        @default(now())
+    updated_at      DateTime        @updatedAt
+    author          User            @relation(fields: [authorId], references: [id])
+    authorId        String
+    locus           Locus
+    stability       Stability
+    controllability Controllability
+    reason          String?
+}
+
+model Belief {
+    id          Int      @id @default(autoincrement())
+    created_at  DateTime @default(now())
+    updated_at  DateTime @updatedAt
+    author      User     @relation(fields: [authorId], references: [id])
+    authorId    String
+    description String
+}
+
+enum Locus {
+    INTERNAL
+    EXTERNAL
+}
+
+enum Stability {
+    STABLE
+    UNSTABLE
+}
+
+enum Controllability {
+    CONTROLLABLE
+    UNCONTROLLABLE
+}
+
+enum Role {
+    USER
+    ADMIN
+}
