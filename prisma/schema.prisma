@@ -15,9 +15,6 @@ model User {
     email       String        @unique
     name        String?
     role        Role          @default(USER)
-    Factor      Factor[]
-    Attribution Attribution[]
-    Belief      Belief[]
 }
 
 model Factor {
@@ -25,16 +22,12 @@ model Factor {
     created_at  DateTime @default(now())
     updated_at  DateTime @updatedAt
     description String
-    author      User     @relation(fields: [authorId], references: [id])
-    authorId    String
 }
 
 model Attribution {
     id              Int             @id @default(autoincrement())
     created_at      DateTime        @default(now())
     updated_at      DateTime        @updatedAt
-    author          User            @relation(fields: [authorId], references: [id])
-    authorId        String
     locus           Locus
     stability       Stability
     controllability Controllability
@@ -45,8 +38,6 @@ model Belief {
     id          Int      @id @default(autoincrement())
     created_at  DateTime @default(now())
     updated_at  DateTime @updatedAt
-    author      User     @relation(fields: [authorId], references: [id])
-    authorId    String
     description String
 }
 

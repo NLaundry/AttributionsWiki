@@ -1,14 +1,19 @@
 from contextlib import asynccontextmanager
-from os import name
+
+# from os import name
 from typing import List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from prisma import Prisma
-from prisma.enums import Role
-from prisma.models import Factor, User
-from prisma.types import UserCreateInput
+from prisma.models import Belief
+
+# from prisma.types import UserCreateInput
+from prisma.types import BeliefCreateInput, BeliefWhereUniqueInput, BeliefUpdateInput
+from fastapi.responses import HTMLResponse, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 db = Prisma()
 
@@ -22,6 +27,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="static/templates")
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -31,34 +39,48 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-@app.get("/")
-async def home() -> str:
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request) -> Response:
     """Home testing."""
-    return "Hello world"
+    template: Response = templates.TemplateResponse(name ="Home.html", context = {"request": request}, status_code=200) #type: ignore
+    return template 
 
-@app.get("/user/create_test")
-async def create_user_test() -> User:
-    """Home testing."""
-    new_user: User = await db.user.create( data={
-        'name':  'franklin',
-        'email': 'bob@gmail.com'
-        })
-    return new_user
-
-@app.post("/user/create")
-async def create_user(user_data: UserCreateInput) -> User:
-    print(user_data)
-    new_user: User = await db.user.create(user_data)
-    return new_user
+@app.get("/templates/belief/get_all", response_class=HTMLResponse)
+async def get_all_beliefs_template(request: Request) -> Response:
+    beliefs: List[Belief] = await db.belief.find_many()
+    template: Response = templates.TemplateResponse(name ="belief_list.html", context = {"request": request, "beliefs": beliefs}, status_code=200) #type: ignore
+    return template
 
 
-# @app.post("/todo/create")
-# async def create_todo(new_todo: TodoCreateInput) -> Todo:
-#     created_todo = await db.todo.create(new_todo)
-#     return created_todo
 
-# @app.get("/todo/read_all")
-# async def read_all_todo() -> List[Todo]:
-#     todo_list: List[Todo] = await db.todo.find_many()
-#     return todo_list
+@app.post("/belief/create")
+async def create_belief(belief_data: BeliefCreateInput) -> Belief:
+    new_belief: Belief = await db.belief.create(belief_data)
+    return new_belief
 
+
+@app.get("/belief/get_all")
+async def get_beliefs() -> List[Belief]:
+    beliefs: List[Belief] = await db.belief.find_many()
+    return beliefs
+
+
+@app.get("/belief/get")
+async def get_belief_by_id(id: BeliefWhereUniqueInput) -> Belief:
+    belief: Belief = await db.belief.find_unique_or_raise(id)
+    return belief
+
+
+@app.delete("/belief/delete")
+async def delete_belief_by_id(id: BeliefWhereUniqueInput) -> Belief | None:
+    belief: Belief | None = await db.belief.delete(id)
+    return belief
+
+
+@app.put("/belief/update")
+async def update_belief(
+    data: BeliefUpdateInput, id: BeliefWhereUniqueInput
+) -> Belief | None:
+    belief: Belief | None = await db.belief.update(data=data, where=id)
+    return belief

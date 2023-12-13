@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Hello World using HTMX</title>
+    <script src="https://unpkg.com/htmx.org@1.4.1"></script>
+</head>
+
+<body>
+    <div id="content" hx-trigger="load">
+        Loading...
+    </div>
+    <div>
+        <a href="/helloWorld" hx-get='/templates/belief/get_all' hx-target="#content"> Click to load Hello World </a>
+    </div>
+</body>
+
+</html>
