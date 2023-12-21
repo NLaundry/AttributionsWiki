@@ -11,17 +11,21 @@ datasource db {
 }
 
 model User {
-    id          String        @id @default(uuid())
-    email       String        @unique
-    name        String?
-    role        Role          @default(USER)
+    id    String  @id @default(uuid())
+    email String  @unique
+    name  String?
+    role  Role    @default(USER)
 }
 
 model Factor {
-    id          Int      @id @default(autoincrement())
-    created_at  DateTime @default(now())
-    updated_at  DateTime @updatedAt
-    description String
+    id            Int          @id @default(autoincrement())
+    created_at    DateTime     @default(now())
+    updated_at    DateTime     @updatedAt
+    description   String
+    attributionId Int?         @unique
+    beliefId      Int?         @unique
+    Attribution   Attribution? @relation(fields: [attributionId], references: [id])
+    Belief        Belief?      @relation(fields: [beliefId], references: [id])
 }
 
 model Attribution {
@@ -32,13 +36,18 @@ model Attribution {
     stability       Stability
     controllability Controllability
     reason          String?
+    belief          Belief[]        @relation("BeliefAttribution")
+    factor          Factor[]
 }
 
+// belief and attribution have a many to many relationship
 model Belief {
-    id          Int      @id @default(autoincrement())
-    created_at  DateTime @default(now())
-    updated_at  DateTime @updatedAt
+    id          Int           @id @default(autoincrement())
+    created_at  DateTime      @default(now())
+    updated_at  DateTime      @updatedAt
     description String
+    attribution Attribution[] @relation("BeliefAttribution")
+    Factor      Factor[]
 }
 
 enum Locus {

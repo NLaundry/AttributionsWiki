@@ -1,5 +1,10 @@
-<ul>
+{% from "belief_card.html" import belief_card %}
+
+
+<div>
     {% for belief in beliefs %}
-        <li>{{belief.description}}</li>
+    <div id="belief-{{ belief.id }}">
+        {{ belief_card(belief) }}
+    </div>
     {% endfor %}
-</ul>
+</div>

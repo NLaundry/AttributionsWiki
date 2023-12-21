@@ -1,0 +1,31 @@
+{% macro belief_card(belief) %}
+<div class="max-w-sm rounded overflow-hidden shadow-lg p-4 mb-4" id="belief-{{ belief.id }}">
+    <div class="px-6 py-4">
+        <div class="font-bold text-xl mb-2">Belief #{{ belief.id }}</div>
+        <p class="text-gray-700 text-base">
+            Created: {{ belief.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        </p>
+        <p class="text-gray-700 text-base">
+            Updated: {{ belief.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        </p>
+        <form id="update-form-{{ belief.id }}" class="mb-4">
+            <label for="description-{{ belief.id }}" class="text-gray-700">Description:</label>
+            <input type="text" id="description-{{ belief.id }}" name="description" value="{{ belief.description }}"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+        </form>
+    </div>
+
+    <div class="px-6 pt-4 pb-2">
+        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            hx-put="/belief/update/{{ belief.id }}" hx-include="#update-form-{{ belief.id }}"
+            hx-target="#belief-{{ belief.id }}" hx-ext='json-enc' hx-swap="none">
+            Update
+        </button>
+        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2"
+            hx-delete="/belief/delete/{{ belief.id }}" hx-confirm="Are you sure you want to delete this belief?"
+            hx-target="#belief-{{ belief.id }}" hx-swap="outerHTML">
+            Delete
+        </button>
+    </div>
+</div>
+{% endmacro %}
