@@ -1,19 +1,22 @@
 """Main FastAPI application."""
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 
 # from os import name
-from typing import List
+from typing import Annotated, Dict, List
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
 
 from prisma import Prisma
-from prisma.models import Attribution, Belief, Factor
-
-# from prisma.types import UserCreateInput
+from prisma.models import Attribution, Belief, Factor, User
 from prisma.types import (
     AttributionCreateInput,
     AttributionUpdateInput,
@@ -24,6 +27,9 @@ from prisma.types import (
     FactorCreateInput,
     FactorUpdateInput,
     FactorWhereUniqueInput,
+    UserCreateInput,
+    UserUpdateInput,
+    UserWhereUniqueInput,
 )
 
 db = Prisma()
@@ -38,6 +44,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="static/templates")
 
@@ -49,6 +56,99 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+# TODO: these need to go in a .env file ... probably
+SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+
+# TODO: Move to user auth or some sort of util file.
+# TODO: type this
+# made these internal methods ... front end should not have access to these
+def _verify_password(plain_password: str, hashed_password: str):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def _get_password_hash(password: str):
+    return pwd_context.hash(password)  # would need this for creation of user
+
+async def get_user_by_username(username: str):
+    user_obj: UserWhereUniqueInput = {"email": username}
+    user: User = await db.user.find_unique_or_raise(user_obj) #type: ignore
+    return user
+
+async def authenticate_user(username: str, password: str):
+    user = await get_user_by_username(username) # check if exists
+    print(user)
+    print(password)
+    print(_get_password_hash(password))
+    if not user:
+        return False
+    if not _verify_password(plain_password=password, hashed_password=user.password): # check if got the right password, #hashed password is stored in DB so it comes with the user
+        return False 
+    return user
+
+
+async def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+):
+    # Recall that username is a required field by ouath ... their username is their email
+    # This is going to cause some WTFs
+    # TODO: how do I indicate that username and email are the same thing?
+    user = await authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post("/user/create")
+async def create_user(user_data: UserCreateInput) -> User:
+    """Create a new user.
+
+    Args: user_data: UserCreateInput
+    Returns: User
+    """
+    print(user_data)
+    user_data["password"] = _get_password_hash(user_data["password"])
+    new_user: User = await db.user.create(user_data)
+    return new_user
+
+
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -207,20 +307,20 @@ async def get_factors() -> List[Factor]:
 
 @app.get("/factor/get/{id}")
 async def get_factor_by_id(id: int) -> Factor:
-    id_obj: FactorWhereUniqueInput = FactorWhereUniqueInput(id=id) #type: ignore
-    factor: Factor = await db.factor.find_unique_or_raise(id_obj) #type: ignore
+    id_obj: FactorWhereUniqueInput = FactorWhereUniqueInput(id=id)  # type: ignore
+    factor: Factor = await db.factor.find_unique_or_raise(id_obj)  # type: ignore
     return factor
 
 
 @app.delete("/factor/delete/{id}")
 async def delete_factor_by_id(id: int) -> Factor | None:
-    id_obj: FactorWhereUniqueInput = FactorWhereUniqueInput(id=id) #type: ignore
-    factor: Factor | None = await db.factor.delete(id_obj) #type: ignore
+    id_obj: FactorWhereUniqueInput = FactorWhereUniqueInput(id=id)  # type: ignore
+    factor: Factor | None = await db.factor.delete(id_obj)  # type: ignore
     return factor
 
 
 @app.put("/factor/update/{id}")
 async def update_factor(data: FactorUpdateInput, id: int) -> Factor | None:
     id_obj: FactorWhereUniqueInput = FactorWhereUniqueInput(id=id)  # type: ignore
-    factor: Factor | None = await db.factor.update(data=data, where=id_obj) # type: ignore
+    factor: Factor | None = await db.factor.update(data=data, where=id_obj)  # type: ignore
     return factor
