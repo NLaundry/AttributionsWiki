@@ -38,6 +38,11 @@ async def get_factors() -> List[Factor]:
 
 @router.get("/get/{id}")
 async def get_factor_by_id(id: int) -> Factor:
+    """ Get a single factor by id.
+
+    Args: id: int
+    Returns: Factor
+    """
     id_obj: FactorWhereUniqueInput = FactorWhereUniqueInput(id=id)  # type: ignore
     factor: Factor = await db.factor.find_unique_or_raise(id_obj)  # type: ignore
     return factor
@@ -45,6 +50,11 @@ async def get_factor_by_id(id: int) -> Factor:
 
 @router.delete("/delete/{id}")
 async def delete_factor_by_id(id: int) -> Factor | None:
+    """Delete a single factor by id.
+
+    Args: id: int
+    Returns: Factor or None
+    """
     id_obj: FactorWhereUniqueInput = FactorWhereUniqueInput(id=id)  # type: ignore
     factor: Factor | None = await db.factor.delete(id_obj)  # type: ignore
     return factor
@@ -52,6 +62,11 @@ async def delete_factor_by_id(id: int) -> Factor | None:
 
 @router.put("/update/{id}")
 async def update_factor(data: FactorUpdateInput, id: int) -> Factor | None:
+    """Update a single factor by id.
+
+    Args: data: FactorUpdateInput, id: int
+    Returns: Factor or None
+    """
     id_obj: FactorWhereUniqueInput = FactorWhereUniqueInput(id=id)  # type: ignore
     factor: Factor | None = await db.factor.update(data=data, where=id_obj)  # type: ignore
     return factor
