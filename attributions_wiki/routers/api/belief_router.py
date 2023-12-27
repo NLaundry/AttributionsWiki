@@ -38,7 +38,11 @@ async def get_beliefs() -> List[Belief]:
 
 @router.get("/get/{id}")
 async def get_belief_by_id(id: int) -> Belief:
-    """Get a single belief by id."""
+    """Get a single belief by id.
+    
+    Args: id: int
+    Returns: Belief
+    """
     id_obj: BeliefWhereUniqueInput = BeliefWhereUniqueInput(id=id)
     belief: Belief = await db.belief.find_unique_or_raise(id_obj)
     return belief
@@ -46,7 +50,11 @@ async def get_belief_by_id(id: int) -> Belief:
 
 @router.delete("/delete/{id}")
 async def delete_belief_by_id(id: int) -> Belief | None:
-    """Delete a single belief by id."""
+    """Delete a single belief by id.
+    
+    Args: id: int
+    Returns: Belief or None
+    """
     id_obj: BeliefWhereUniqueInput = BeliefWhereUniqueInput(id=id)
     belief: Belief | None = await db.belief.delete(id_obj)
     return belief
@@ -54,6 +62,11 @@ async def delete_belief_by_id(id: int) -> Belief | None:
 
 @router.put("/update/{id}")
 async def update_belief(data: BeliefUpdateInput, id: int) -> Belief | None:
+    """Update a single belief by id.
+
+    Args: data: BeliefUpdateInput, id: int
+    Returns: Belief or None
+    """
     id_obj: BeliefWhereUniqueInput = BeliefWhereUniqueInput(id=id)
     belief: Belief | None = await db.belief.update(data=data, where=id_obj)
     return belief

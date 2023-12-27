@@ -41,7 +41,7 @@ async def get_attributions() -> List[Attribution]:
         attributions: List[Attribution] = await db.attribution.find_many()
         return attributions
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/get/{id}")
