@@ -41,6 +41,11 @@ async def get_attributions() -> List[Attribution]:
 
 @router.get("/get/{id}")
 async def get_attribution_by_id(id: int) -> Attribution:
+    """Get attribution defined by a given id.
+    
+    Args: id: int
+    Returns: Attribution
+    """
     id_obj: AttributionWhereUniqueInput = AttributionWhereUniqueInput(id=id)
     attribution: Attribution = await db.attribution.find_unique_or_raise(id_obj)
     return attribution
@@ -48,6 +53,11 @@ async def get_attribution_by_id(id: int) -> Attribution:
 
 @router.delete("/delete/{id}")
 async def delete_attribution_by_id(id: int) -> Attribution | None:
+    """Delete attribution defined by a given id.
+
+    Args: id: int
+    Returns: Attribution or None
+    """
     id_obj: AttributionWhereUniqueInput = AttributionWhereUniqueInput(id=id)
     attribution: Attribution | None = await db.attribution.delete(id_obj)
     return attribution
@@ -57,6 +67,12 @@ async def delete_attribution_by_id(id: int) -> Attribution | None:
 async def update_attribution(
     data: AttributionUpdateInput, id: int
 ) -> Attribution | None:
+    """
+    Update attribution defined by a given id.
+
+    Args: data: AttributionUpdateInput, id: int
+    Returns: Attribution or None
+    """
     id_obj: AttributionWhereUniqueInput = AttributionWhereUniqueInput(id=id)
     attribution: Attribution | None = await db.attribution.update(
         data=data, where=id_obj
