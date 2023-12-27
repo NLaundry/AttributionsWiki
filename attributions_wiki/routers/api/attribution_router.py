@@ -18,7 +18,6 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-
 @router.post("/create")
 async def create_attribution(attribution_data: AttributionCreateInput) -> Attribution:
     """Create a new attribution.

@@ -1,7 +1,7 @@
 """Main FastAPI application."""
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -18,11 +18,19 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(factor_router.router)
-app.include_router(attribution_router.router)
-app.include_router(user_router.router)
-app.include_router(belief_router.router)
-app.include_router(views.router)
+
+# Could put these in the router module but ... eh
+api_router = APIRouter(prefix="/api/v1")
+views_router = APIRouter(prefix="/views")
+
+api_router.include_router(factor_router.router)
+api_router.include_router(attribution_router.router)
+api_router.include_router(user_router.router)
+api_router.include_router(belief_router.router)
+views_router.include_router(views.router)
+
+app.include_router(api_router)
+app.include_router(views_router)
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
