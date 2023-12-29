@@ -49,7 +49,7 @@ select = [
  "ICN", # flake8-import-conventions issues
  "T20", # flake8-print issues
  "PT", # flake8-pytest-style issues
- "TRY", # tryceratops issues
+ # "TRY", # tryceratops issues
  "PERF", # Perflint issues
  "RUF", # Ruff-specific rules
 ]
