@@ -1,4 +1,4 @@
-"""Factor router."""
+"""Factor Service."""
 from typing import List
 
 from prisma.errors import MissingRequiredValueError, PrismaError, RecordNotFoundError

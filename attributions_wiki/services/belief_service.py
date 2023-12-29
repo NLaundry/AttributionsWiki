@@ -1,4 +1,4 @@
-"""Belief router."""
+"""Belief service."""
 from typing import List
 
 from prisma.errors import MissingRequiredValueError, PrismaError, RecordNotFoundError

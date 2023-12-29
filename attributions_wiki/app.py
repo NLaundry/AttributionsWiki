@@ -1,27 +1,18 @@
 """Main FastAPI application."""
-from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .db import db
+from .db import lifespan
 from .routers.api import attribution_router, belief_router, factor_router, user_router
 from .routers.views import views
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await db.connect()
-    yield
-    await db.disconnect()
-
 
 app = FastAPI(lifespan=lifespan)
 
 # Could put these in the router module but ... eh
 api_router = APIRouter(prefix="/api/v1")
-views_router = APIRouter(prefix="/views")
+views_router = APIRouter()
 
 api_router.include_router(factor_router.router)
 api_router.include_router(attribution_router.router)
