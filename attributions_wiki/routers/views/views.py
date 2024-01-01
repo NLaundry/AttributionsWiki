@@ -26,6 +26,21 @@ async def home(request: Request) -> Response:
     )
     return template
 
+@router.get("/login", response_class=HTMLResponse)
+async def home(request: Request) -> Response:
+    """Login page get"""
+    template: Response = templates.TemplateResponse(  # type: ignore
+        name="login.html", context={"request": request}, status_code=200
+    )
+    return template
+
+@router.get("/register", response_class=HTMLResponse)
+async def home(request: Request) -> Response:
+    """Register page get"""
+    template: Response = templates.TemplateResponse(  # type: ignore
+        name="register.html", context={"request": request}, status_code=200
+    )
+    return template
 
 @router.get("/templates/belief/get_all", response_class=HTMLResponse)
 async def get_all_beliefs_template(request: Request) -> Response:

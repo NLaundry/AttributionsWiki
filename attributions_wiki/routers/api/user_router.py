@@ -54,13 +54,19 @@ async def read_users_me(
     return current_user
 
 
-@router.post("/user/create")
+@router.post("/user/create/")
 async def create_user(user_data: UserCreateInput) -> User:
     """Create a new user.
 
     Args: user_data: UserCreateInput
     Returns: User
     """
+    if (user_data["password"] != user_data["rpassword"]):
+        raise HTTPException(
+        status_code=403,
+        detail="Passwords do not match",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     user_data["password"] = get_password_hash(user_data["password"])
     new_user: User = await db.user.create(user_data)
     return new_user

@@ -52,7 +52,7 @@ def get_password_hash(password: str):
 
 async def get_user_by_username(username: str) -> User | None:
     user_obj: UserWhereUniqueInput = {"email": username}
-    user: User | None = await db.user.find_unique_or_raise(user_obj)  # type: ignore
+    user: User | None = await db.user.find_unique(user_obj)  # type: ignore
     return user
 
 
