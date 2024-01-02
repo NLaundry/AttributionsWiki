@@ -1,5 +1,4 @@
 """User router for FastAPI."""
-from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,57 +9,89 @@ from prisma.types import (
     UserCreateInput,
 )
 
-from ...db import db
+from ...exceptions import AuthenticationError, InvalidTokenError, UserNotFoundError
 from ...services.auth import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
     Token,
-    authenticate_user,
-    create_access_token,  #type: ignore
+)
+from ...services.user_service import (
+    authenticate_user_and_create_token,
+    create_user,
     get_current_active_user,
-    get_password_hash,
 )
 
 router = APIRouter(
+    prefix="/user",
     tags=["user"],
-    responses={404: {"description": "Not found"}},
 )
 
 
-@router.post("/token", response_model=Token)
+@router.post("/sign-in", response_model=Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
-    # Recall that username is a required field by ouath ... their username is their email
-    # This is going to cause some WTFs
-    # TODO: how do I indicate that username and email are the same thing?
-    user = await authenticate_user(form_data.username, form_data.password)
-    if not user:
+    """OAuth2 compatible token login, get an access token for future requests.
+
+    Args:
+        form_data (OAuth2PasswordRequestForm): The OAuth2 request form data.
+
+    Returns:
+        Token: The access token for the authenticated user.
+
+    Raises:
+        HTTPException: If authentication fails.
+    """
+    try:
+        return await authenticate_user_and_create_token(
+            form_data.username, form_data.password
+        )
+    except AuthenticationError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail=str(err),
             headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+        ) from err
 
 
-@router.get("/users/me/", response_model=User)
+@router.post("/user/create", response_model=User)
+async def create_user_route(user_data: UserCreateInput) -> User:
+    try:
+        return await create_user(user_data)
+    except Exception as err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error",
+        ) from err
+
+
+@router.get("/user/me/", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
-    return current_user
+    """Retrieve the current authenticated user's details.
 
+    Args:
+        current_user (User): The current authenticated user obtained from the token.
 
-@router.post("/user/create")
-async def create_user(user_data: UserCreateInput) -> User:
-    """Create a new user.
+    Returns:
+        User: The current authenticated user.
 
-    Args: user_data: UserCreateInput
-    Returns: User
+    Raises:
+        HTTPException: If user is not found or token is invalid.
     """
-    user_data["password"] = get_password_hash(user_data["password"])
-    new_user: User = await db.user.create(user_data)
-    return new_user
+    try:
+        return current_user
+    except UserNotFoundError as err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        ) from err
+    except InvalidTokenError as err:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from err
+    except Exception as err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error",
+        ) from err

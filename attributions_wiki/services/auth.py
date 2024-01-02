@@ -1,21 +1,14 @@
+"""Authentication module for the API."""
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
-from prisma.models import User
-from prisma.types import (
-    UserWhereUniqueInput,
-)
-
-from ..db import db
-
-from dotenv import load_dotenv
-import os
+from ..exceptions import InvalidTokenError, UsernameNotFoundError
 
 # Load the .env file
 load_dotenv()
@@ -26,92 +19,74 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/user/sign-in")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class Token(BaseModel):
+    """Token model representing an OAuth2 token."""
+
     access_token: str
     token_type: str
 
 
 class TokenData(BaseModel):
+    """Data model for token payload."""
+
     username: str | None = None
 
 
-# TODO: Move to user auth or some sort of util file.
-# TODO: type this
-# made these internal methods ... front end should not have access to these
-def _verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
+def create_access_token(
+    data: dict[str, str], expires_delta: timedelta | None = None
+) -> Annotated[str, "encoded_jwt"]:
+    """Create an access token with optional expiry.
+
+    Args:
+        data: The payload data for the token.
+        expires_delta: Expiry time delta.
+
+    Returns:
+        str: Encoded JWT token.
+    """
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_password_hash(password: str):
-    return pwd_context.hash(password)  # would need this for creation of user
+async def validate_token(token: str) -> bool:
+    """Validate an OAuth2 token.
 
+    Args:
+        token: A string representation of the user's OAuth2 token.
 
-async def get_user_by_username(username: str) -> User | None:
-    user_obj: UserWhereUniqueInput = {"email": username}
-    user: User | None = await db.user.find_unique_or_raise(user_obj)  # type: ignore
-    return user
+    Returns:
+        bool: True if the token is valid.
 
-
-async def authenticate_user(username: str, password: str):
-    user = await get_user_by_username(username)  # check if exists
-    if not user:
-        return False
-    if not _verify_password(
-        plain_password=password, hashed_password=user.password
-    ):  # check if got the right password, #hashed password is stored in DB so it comes with the user
-        return False
-    return user
-
-
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    Raises:
+        InvalidTokenError: If the token is invalid.
+    """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
-    user = await get_user_by_username(username=token_data.username)
-    if user is None:
-        raise credentials_exception
-    return user
+        jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return True
+    except JWTError as err:
+        raise InvalidTokenError("Could not validate credentials") from err
 
 
-async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)]
-):
-    if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
+async def extract_username_from_token(token: str) -> str:
+    """Extract the username from the token payload.
 
+    Args:
+        token: A string representation of the user's OAuth2 token.
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    Returns:
+        str: The username extracted from the token.
 
-
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    Raises:
+        UsernameNotFoundError: If the username is not present in the token payload.
+    """
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    username: str = payload.get("sub")
+    if not username:
+        raise UsernameNotFoundError("Token does not contain a valid username")
+    return username
